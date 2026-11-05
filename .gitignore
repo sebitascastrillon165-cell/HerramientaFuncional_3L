@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 build/
 dist/
 release/win-unpacked/
@@ -11,3 +11,4 @@ data/
 .pytest_cache/
 __pycache__/
 *.pyc
+*.spec

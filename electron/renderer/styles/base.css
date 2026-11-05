@@ -201,3 +201,7 @@ h3 {
 .data-table th {
   background: var(--surface-2);
 }
+.status-message {
+  color: var(--text-muted);
+  font-size: 13px;
+}

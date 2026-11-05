@@ -1,7 +1,8 @@
 ﻿(function () {
   "use strict";
 
-  const API_BASE = "http://127.0.0.1:8000";
+  const API_HOST = "http://127.0.0.1";
+  let apiPort = 8000;
 
   function $(id) {
     return document.getElementById(id);
@@ -11,7 +12,7 @@
     if (window.electronAPI && window.electronAPI.invokeApi) {
       return await window.electronAPI.invokeApi({ method, path, body });
     }
-    const response = await fetch(API_BASE + path, {
+    const response = await fetch(API_HOST + ":" + apiPort + path, {
       method,
       headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
@@ -37,7 +38,15 @@
 
   function showSuccess(message) {
     if (typeof Swal !== "undefined") {
-      Swal.fire({ icon: "success", title: "Listo", text: message, timer: 1200, showConfirmButton: false });
+      Swal.fire({ icon: "success", title: "Listo", text: message, timer: 1500, showConfirmButton: false });
+    }
+  }
+
+  function showInfo(message) {
+    if (typeof Swal !== "undefined") {
+      Swal.fire({ icon: "info", title: "Aviso", text: message });
+    } else {
+      console.log(message);
     }
   }
 
@@ -64,6 +73,8 @@
       loadRiders();
     } else if (viewId === "tariffs") {
       loadTariffs();
+    } else if (viewId === "control") {
+      syncPortControls();
     }
   }
 
@@ -270,6 +281,66 @@
     }
   });
 
+  function syncPortControls() {
+    $("apiPort").value = String(apiPort);
+    $("portStatus").textContent = "API local: http://127.0.0.1:" + apiPort;
+  }
+
+  async function reloadCurrentView() {
+    const active = document.querySelector(".nav-item.active");
+    const viewId = active ? active.dataset.view : "dashboard";
+    switchView(viewId);
+  }
+
+  async function applyPort(port) {
+    if (window.electronAPI && window.electronAPI.setSettings) {
+      const applied = await window.electronAPI.setSettings({ port: port });
+      apiPort = applied.port;
+      syncPortControls();
+      showSuccess("Puerto actualizado a " + apiPort + ". El backend se reuso.");
+      await reloadCurrentView();
+    } else {
+      apiPort = port;
+      try {
+        localStorage.setItem("pesebrera3l-port", String(port));
+      } catch (error) {}
+      syncPortControls();
+      showInfo("Sin puente IPC. El renderer usara el puerto " + port + ". Reinicie el backend manualmente.");
+      await reloadCurrentView();
+    }
+  }
+
+  $("formPort").addEventListener("submit", function (event) {
+    event.preventDefault();
+    const parsed = Number($("apiPort").value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
+      showError(new Error("Ingrese un puerto valido entre 1 y 65535."));
+      return;
+    }
+    applyPort(parsed).catch(showError);
+  });
+
+  async function initSettings() {
+    if (window.electronAPI && window.electronAPI.getSettings) {
+      try {
+        const settings = await window.electronAPI.getSettings();
+        if (settings && Number.isInteger(settings.port)) {
+          apiPort = settings.port;
+        }
+      } catch (error) {
+        // usa 8000
+      }
+    } else {
+      try {
+        const saved = Number(localStorage.getItem("pesebrera3l-port"));
+        if (Number.isInteger(saved) && saved >= 1 && saved <= 65535) {
+          apiPort = saved;
+        }
+      } catch (error) {}
+    }
+    syncPortControls();
+  }
+
   document.querySelectorAll(".nav-item").forEach(function (button) {
     button.addEventListener("click", function () {
       switchView(button.dataset.view);
@@ -319,5 +390,7 @@
   });
 
   restoreVisualState();
-  switchView("dashboard");
+  initSettings().then(function () {
+    switchView("dashboard");
+  });
 })();

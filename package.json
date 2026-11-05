@@ -7,11 +7,12 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "backend": "python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000",
+    "backend": "python backend/run_server.py",
     "test": "node --test tests/frontend",
     "package": "electron-builder",
     "package:portable": "electron-builder --win portable"
   },
+  "dependencies": {},
   "devDependencies": {
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0"

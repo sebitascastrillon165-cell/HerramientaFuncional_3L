@@ -1,12 +1,42 @@
 ﻿const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
+const fs = require("fs");
+
+const { normalizePort, DEFAULT_PORT } = require("./lib/port.js");
 
 const BACKEND_HOST = "127.0.0.1";
-const BACKEND_PORT = 8000;
 const isDev = !app.isPackaged;
 
 let backendProcess = null;
+let config = { port: DEFAULT_PORT };
+
+function configFilePath() {
+  return path.join(app.getPath("userData"), "config.json");
+}
+
+function loadConfig() {
+  try {
+    const raw = fs.readFileSync(configFilePath(), "utf8");
+    const parsed = JSON.parse(raw);
+    config = { port: normalizePort(parsed.port, DEFAULT_PORT) };
+  } catch (error) {
+    config = { port: DEFAULT_PORT };
+  }
+}
+
+function saveConfig() {
+  try {
+    fs.mkdirSync(path.dirname(configFilePath()), { recursive: true });
+    fs.writeFileSync(configFilePath(), JSON.stringify(config, null, 2));
+  } catch (error) {
+    console.error("No se pudo guardar la configuracion:", error);
+  }
+}
+
+function currentPort() {
+  return normalizePort(config.port, DEFAULT_PORT);
+}
 
 function backendDir() {
   if (isDev) {
@@ -16,10 +46,11 @@ function backendDir() {
 }
 
 function backendCommand() {
+  const port = currentPort();
   if (isDev) {
     return {
       file: "python",
-      args: ["-m", "uvicorn", "app.main:app", "--app-dir", backendDir(), "--host", BACKEND_HOST, "--port", String(BACKEND_PORT)],
+      args: ["-m", "uvicorn", "app.main:app", "--app-dir", backendDir(), "--host", BACKEND_HOST, "--port", String(port)],
       options: { cwd: backendDir() },
     };
   }
@@ -30,35 +61,52 @@ function backendCommand() {
   };
 }
 
+function backendEnvironment() {
+  const dataDir = path.join(app.getPath("userData"), "data");
+  const backupDir = path.join(app.getPath("userData"), "backups");
+  return Object.assign({}, process.env, {
+    PESEBRERA3L_PORT: String(currentPort()),
+    PESEBRERA3L_DATA: dataDir,
+    PESEBRERA3L_BACKUP: backupDir,
+  });
+}
+
 function startBackend() {
   if (backendProcess) {
     return;
   }
   const command = backendCommand();
-  const backendEnv = Object.assign({}, process.env, {
-    PESEBRERA3L_DATA: path.join(app.getPath("userData"), "data"),
-    PESEBRERA3L_BACKUP: path.join(app.getPath("userData"), "backups"),
-  });
   backendProcess = spawn(command.file, command.args, Object.assign({}, command.options, {
-    env: backendEnv,
+    env: backendEnvironment(),
     stdio: "ignore",
   }));
   backendProcess.on("error", (error) => console.error("Backend Python no pudo iniciarse:", error));
 }
 
 function stopBackend() {
-  if (backendProcess) {
+  const current = backendProcess;
+  backendProcess = null;
+  if (current) {
     try {
-      backendProcess.kill();
+      current.kill();
     } catch (error) {
       console.error("Error al detener el backend:", error);
     }
-    backendProcess = null;
   }
 }
 
+function restartBackend() {
+  stopBackend();
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      startBackend();
+      resolve(currentPort());
+    }, 600);
+  });
+}
+
 async function invokeApi(request) {
-  const response = await fetch("http://" + BACKEND_HOST + ":" + BACKEND_PORT + request.path, {
+  const response = await fetch("http://" + BACKEND_HOST + ":" + currentPort() + request.path, {
     method: request.method || "GET",
     headers: { "Content-Type": "application/json" },
     body: request.body ? JSON.stringify(request.body) : undefined,
@@ -87,6 +135,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  loadConfig();
   createWindow();
   startBackend();
 });
@@ -97,6 +146,21 @@ app.on("will-quit", () => {
 
 ipcMain.handle("api:invoke", async (event, request) => {
   return await invokeApi(request);
+});
+
+ipcMain.handle("settings:get", async () => {
+  return { port: currentPort() };
+});
+
+ipcMain.handle("settings:set", async (event, settings) => {
+  const nextPort = normalizePort(settings && settings.port, DEFAULT_PORT);
+  if (nextPort === currentPort()) {
+    return { port: nextPort, changed: false };
+  }
+  config = { port: nextPort };
+  saveConfig();
+  await restartBackend();
+  return { port: nextPort, changed: true };
 });
 
 app.on("window-all-closed", () => {
