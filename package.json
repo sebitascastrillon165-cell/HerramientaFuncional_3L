@@ -1,0 +1,19 @@
+{
+  "name": "pesebrera3l-desk",
+  "version": "1.0.0",
+  "description": "Pesebrera3L-Desk - Gestion integral de la pesebrera 3L (equinos y mulares)",
+  "main": "electron/main.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "backend": "python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000",
+    "test": "node --test tests/frontend",
+    "package": "electron-builder",
+    "package:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  }
+}
