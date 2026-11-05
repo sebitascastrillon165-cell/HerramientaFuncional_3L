@@ -15,6 +15,17 @@ function configFilePath() {
   return path.join(app.getPath("userData"), "config.json");
 }
 
+function backendsLogStream() {
+  try {
+    const logDir = app.getPath("userData");
+    fs.mkdirSync(logDir, { recursive: true });
+    return fs.openSync(path.join(logDir, "backend.log"), "a");
+  } catch (error) {
+    console.error("No se pudo abrir backend.log:", error);
+    return null;
+  }
+}
+
 function loadConfig() {
   try {
     const raw = fs.readFileSync(configFilePath(), "utf8");
@@ -76,10 +87,12 @@ function startBackend() {
     return;
   }
   const command = backendCommand();
-  backendProcess = spawn(command.file, command.args, Object.assign({}, command.options, {
+  const logStream = backendsLogStream();
+  const options = Object.assign({}, command.options, {
     env: backendEnvironment(),
-    stdio: "ignore",
-  }));
+    stdio: ["ignore", logStream, logStream],
+  });
+  backendProcess = spawn(command.file, command.args, options);
   backendProcess.on("error", (error) => console.error("Backend Python no pudo iniciarse:", error));
 }
 
@@ -105,20 +118,35 @@ function restartBackend() {
   });
 }
 
-async function invokeApi(request) {
-  const response = await fetch("http://" + BACKEND_HOST + ":" + currentPort() + request.path, {
-    method: request.method || "GET",
-    headers: { "Content-Type": "application/json" },
-    body: request.body ? JSON.stringify(request.body) : undefined,
-  });
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.detail || response.statusText);
+async function invokeApi(request, retryCount) {
+  const attempt = Number.isInteger(retryCount) ? retryCount : 0;
+  const port = currentPort();
+  try {
+    const response = await fetch("http://" + BACKEND_HOST + ":" + port + request.path, {
+      method: request.method || "GET",
+      headers: { "Content-Type": "application/json" },
+      body: request.body ? JSON.stringify(request.body) : undefined,
+    });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.detail || response.statusText);
+    }
+    if (response.status === 204) {
+      return null;
+    }
+    return await response.json();
+  } catch (networkError) {
+    const message = String(networkError && networkError.message ? networkError.message : networkError);
+    const transient = /fetch failed|failed to fetch|ECONNREFUSED|timed out|network/i.test(message);
+    if (transient && attempt < 5) {
+      await new Promise((resolve) => setTimeout(resolve, 800 + attempt * 800));
+      return invokeApi(request, attempt + 1);
+    }
+    throw new Error(
+      "No se pudo conectar con el backend en http://" + BACKEND_HOST + ":" + port +
+      ". Revise el archivo backend.log en el directorio de datos de la app."
+    );
   }
-  if (response.status === 204) {
-    return null;
-  }
-  return await response.json();
 }
 
 function createWindow() {
@@ -130,6 +158,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+  win.webContents.on("did-fail-load", (event, code, description, url) => {
+    console.error("did-fail-load:", code, description, url);
   });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
