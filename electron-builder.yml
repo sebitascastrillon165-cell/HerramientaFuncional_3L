@@ -1,0 +1,14 @@
+﻿appId: com.pesebrera3l.desk
+productName: Pesebrera3L Desk
+asar: true
+directories:
+  output: release
+files:
+  - electron/**/*
+extraResources:
+  - from: dist/pesebrera3l-backend.exe
+    to: backend/pesebrera3l-backend.exe
+win:
+  target:
+    - portable
+  artifactName: Pesebrera3L-Desk-${version}-portable.${ext}

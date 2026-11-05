@@ -1,0 +1,13 @@
+﻿node_modules/
+build/
+dist/
+release/win-unpacked/
+release/builder-debug.yml
+backend/data/
+backend/backups/
+backups/
+data/
+*.db
+.pytest_cache/
+__pycache__/
+*.pyc
