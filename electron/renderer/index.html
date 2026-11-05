@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesebrera3L-Desk</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/themes.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.min.css">
+</head>
+<body>
+  <header class="app-header" id="appHeader">
+    <div class="brand">
+      <i class="fas fa-horse-head" aria-hidden="true"></i>
+      <h1>Pesebrera 3L</h1>
+    </div>
+    <div class="theme-controls">
+      <label for="themeSelect">Tema</label>
+      <select id="themeSelect">
+        <option value="pampa">Pampa</option>
+        <option value="noche">Noche</option>
+        <option value="valle">Valle</option>
+        <option value="luna">Luna</option>
+        <option value="rio">Rio</option>
+      </select>
+      <label for="modeSelect">Modo</label>
+      <select id="modeSelect">
+        <option value="light">Claro</option>
+        <option value="dark">Oscuro</option>
+        <option value="contrast">Alto contraste</option>
+      </select>
+      <label for="dichromacySelect">Daltonismo</label>
+      <select id="dichromacySelect">
+        <option value="none">Ninguno</option>
+        <option value="protanopia">Protanopia</option>
+        <option value="deuteranopia">Deuteranopia</option>
+        <option value="tritanopia">Tritanopia</option>
+      </select>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <nav id="sidebarNav">
+      <button type="button" class="nav-item active" data-view="dashboard">
+        <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" class="nav-item" data-view="stables">
+        <i class="fas fa-warehouse" aria-hidden="true"></i>
+        <span>Pesebreras</span>
+      </button>
+      <button type="button" class="nav-item" data-view="animals">
+        <i class="fas fa-horse" aria-hidden="true"></i>
+        <span>Animales</span>
+      </button>
+      <button type="button" class="nav-item" data-view="riders">
+        <i class="fas fa-user-riding" aria-hidden="true"></i>
+        <span>Montadores</span>
+      </button>
+      <button type="button" class="nav-item" data-view="tariffs">
+        <i class="fas fa-tags" aria-hidden="true"></i>
+        <span>Tarifas</span>
+      </button>
+    </nav>
+  </aside>
+
+  <main class="content" id="content">
+    <section id="view-dashboard" class="view active" aria-labelledby="dashboardTitle">
+      <h2 id="dashboardTitle">Dashboard</h2>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <h3>Total pesebreras</h3>
+          <p id="statStallsTotal">0</p>
+        </article>
+        <article class="stat-card">
+          <h3>Pesebreras disponibles</h3>
+          <p id="statStallsAvailable">0</p>
+        </article>
+        <article class="stat-card">
+          <h3>Pesebreras llenas</h3>
+          <p id="statStallsFull">0</p>
+        </article>
+        <article class="stat-card">
+          <h3>Montadores activos</h3>
+          <p id="statRidersActive">0</p>
+        </article>
+        <article class="stat-card">
+          <h3>Montadores disponibles</h3>
+          <p id="statRidersAvailable">0</p>
+        </article>
+        <article class="stat-card">
+          <h3>Animales registrados</h3>
+          <p id="statAnimalsTotal">0</p>
+        </article>
+      </div>
+      <h3>Distribucion de animales por pesebrera</h3>
+      <ul id="animalsByStall" class="list"></ul>
+    </section>
+
+    <section id="view-stables" class="view" aria-labelledby="stablesTitle">
+      <h2 id="stablesTitle">Pesebreras</h2>
+      <form id="formStall" class="form">
+        <input id="stallName" type="text" placeholder="Nombre de la pesebrera" required>
+        <input id="stallCapacity" type="number" min="1" value="1" required>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          <span>Registrar</span>
+        </button>
+      </form>
+      <table id="stallsTable" class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Capacidad</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="stallsTbody"></tbody>
+      </table>
+    </section>
+
+    <section id="view-animals" class="view" aria-labelledby="animalsTitle">
+      <h2 id="animalsTitle">Animales</h2>
+      <form id="formAnimal" class="form">
+        <select id="animalType" required>
+          <option value="caballo">Caballo</option>
+          <option value="mula">Mula</option>
+        </select>
+        <input id="animalName" type="text" placeholder="Nombre / identificacion" required>
+        <input id="animalRaza" type="text" placeholder="Raza">
+        <select id="animalSexo" required>
+          <option value="macho">Macho</option>
+          <option value="hembra">Hembra</option>
+        </select>
+        <select id="animalStall" required>
+          <option value="">Sin pesebrera</option>
+        </select>
+        <select id="animalRider" required>
+          <option value="">Sin montador</option>
+        </select>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          <span>Registrar</span>
+        </button>
+      </form>
+      <table id="animalsTable" class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Nombre</th>
+            <th>Raza</th>
+            <th>Pesebrera</th>
+            <th>Montador</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="animalsTbody"></tbody>
+      </table>
+    </section>
+
+    <section id="view-riders" class="view" aria-labelledby="ridersTitle">
+      <h2 id="ridersTitle">Montadores</h2>
+      <form id="formRider" class="form">
+        <input id="riderName" type="text" placeholder="Nombre del montador" required>
+        <input id="riderPhone" type="text" placeholder="Telefono">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          <span>Registrar</span>
+        </button>
+      </form>
+      <table id="ridersTable" class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Telefono</th>
+            <th>Carga (caballos/mulas)</th>
+            <th>Disponible</th>
+          </tr>
+        </thead>
+        <tbody id="ridersTbody"></tbody>
+      </table>
+    </section>
+
+    <section id="view-tariffs" class="view" aria-labelledby="tariffsTitle">
+      <h2 id="tariffsTitle">Tarifas y servicios</h2>
+      <form id="formTariff" class="form">
+        <input id="tariffName" type="text" placeholder="Concepto" required>
+        <input id="tariffPrice" type="number" min="0" step="0.01" required>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus" aria-hidden="true"></i>
+          <span>Registrar</span>
+        </button>
+      </form>
+      <table id="tariffsTable" class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Concepto</th>
+            <th>Precio</th>
+          </tr>
+        </thead>
+        <tbody id="tariffsTbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Pesebrera3L-Desk - Gestion integral de la pesebrera 3L</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.min.js"></script>
+  <script src="js/theme-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
