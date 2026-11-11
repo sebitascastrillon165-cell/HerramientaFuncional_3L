@@ -1,6 +1,6 @@
 {
   "name": "pesebrera3l-desk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Pesebrera3L-Desk - Gestion integral de la pesebrera 3L (equinos y mulares)",
   "main": "electron/main.js",
   "license": "MIT",
