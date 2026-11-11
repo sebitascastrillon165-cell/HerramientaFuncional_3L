@@ -9,6 +9,9 @@
     "start": "electron .",
     "backend": "python backend/run_server.py",
     "test": "node --test tests/frontend",
+    "test:e2e": "node tests/e2e/ui-smoke.cjs",
+    "test:e2e:exe": "node tests/e2e/ui-smoke.cjs --exe \"release/win-unpacked/Pesebrera3L Desk.exe\"",
+    "test:all": "npm run test && npm run test:e2e",
     "package": "electron-builder",
     "package:portable": "electron-builder --win portable"
   },
@@ -17,6 +20,7 @@
     "asar": "^3.2.0",
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0",
+    "playwright-core": "^1.65.0",
     "sweetalert2": "^11.26.25"
   }
 }

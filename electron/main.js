@@ -12,6 +12,9 @@ let backendProcess = null;
 let config = { port: DEFAULT_PORT };
 
 function configFilePath() {
+  if (process.env.PESEBRERA3L_CONFIG) {
+    return process.env.PESEBRERA3L_CONFIG;
+  }
   return path.join(app.getPath("userData"), "config.json");
 }
 
@@ -73,8 +76,10 @@ function backendCommand() {
 }
 
 function backendEnvironment() {
-  const dataDir = path.join(app.getPath("userData"), "data");
-  const backupDir = path.join(app.getPath("userData"), "backups");
+  const dataDir =
+    process.env.PESEBRERA3L_DATA || path.join(app.getPath("userData"), "data");
+  const backupDir =
+    process.env.PESEBRERA3L_BACKUP || path.join(app.getPath("userData"), "backups");
   return Object.assign({}, process.env, {
     PESEBRERA3L_PORT: String(currentPort()),
     PESEBRERA3L_DATA: dataDir,
@@ -121,32 +126,34 @@ function restartBackend() {
 async function invokeApi(request, retryCount) {
   const attempt = Number.isInteger(retryCount) ? retryCount : 0;
   const port = currentPort();
+  const url = "http://" + BACKEND_HOST + ":" + port + request.path;
+  let response;
   try {
-    const response = await fetch("http://" + BACKEND_HOST + ":" + port + request.path, {
+    response = await fetch(url, {
       method: request.method || "GET",
       headers: { "Content-Type": "application/json" },
       body: request.body ? JSON.stringify(request.body) : undefined,
     });
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      throw new Error(errorBody.detail || response.statusText);
-    }
-    if (response.status === 204) {
-      return null;
-    }
-    return await response.json();
   } catch (networkError) {
     const message = String(networkError && networkError.message ? networkError.message : networkError);
-    const transient = /fetch failed|failed to fetch|ECONNREFUSED|timed out|network/i.test(message);
+    const transient = /fetch failed|failed to fetch|ECONNREFUSED|timed out|network|socket/i.test(message);
     if (transient && attempt < 5) {
       await new Promise((resolve) => setTimeout(resolve, 800 + attempt * 800));
       return invokeApi(request, attempt + 1);
     }
     throw new Error(
-      "No se pudo conectar con el backend en http://" + BACKEND_HOST + ":" + port +
+      "No se pudo conectar con el backend en " + url +
       ". Revise el archivo backend.log en el directorio de datos de la app."
     );
   }
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.detail || response.statusText);
+  }
+  if (response.status === 204) {
+    return null;
+  }
+  return await response.json();
 }
 
 function createWindow() {
