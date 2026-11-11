@@ -23,7 +23,7 @@ class PesebreraBase(BaseModel):
 
 
 class PesebreraCreate(PesebreraBase):
-    pass
+    cantidad: int = Field(default=1, ge=1, le=100)
 
 
 class PesebreraUpdate(BaseModel):
@@ -57,6 +57,7 @@ class AnimalBase(BaseModel):
     pesebrera_id: Optional[int] = None
     montador_id: Optional[int] = None
     estado: str = Field(default="asignado", max_length=20)
+    montador_disponible: Optional[bool] = None
 
 
 class AnimalCreate(AnimalBase):
@@ -72,3 +73,4 @@ class AnimalUpdate(BaseModel):
     estado: Optional[str] = None
     pesebrera_id: Optional[int] = None
     montador_id: Optional[int] = None
+    montador_disponible: Optional[bool] = None

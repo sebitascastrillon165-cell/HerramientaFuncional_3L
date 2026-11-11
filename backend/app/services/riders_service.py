@@ -40,6 +40,25 @@ def create_montador(conn, payload):
     return dict(row)
 
 
+def set_disponibilidad(conn, montador_id, disponible):
+    get_montador(conn, montador_id)
+    conn.execute(
+        "UPDATE montadores SET disponible = ?, updated_at = datetime('now') WHERE id = ?",
+        (1 if disponible else 0, montador_id),
+    )
+
+
+def delete_montador(conn, montador_id):
+    get_montador(conn, montador_id)
+    conn.execute(
+        "UPDATE animales SET montador_id = NULL, updated_at = datetime('now') WHERE montador_id = ?",
+        (montador_id,),
+    )
+    conn.execute("DELETE FROM montadores WHERE id = ?", (montador_id,))
+    conn.commit()
+    return {"status": "Eliminado"}
+
+
 def update_montador(conn, montador_id, payload):
     montador = get_montador(conn, montador_id)
     disponible = montador["disponible"]

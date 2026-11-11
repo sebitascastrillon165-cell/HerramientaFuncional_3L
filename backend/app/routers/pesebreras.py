@@ -18,9 +18,26 @@ def listar_pesebreras():
 def crear_pesebrera(payload: PesebreraCreate):
     with db_session() as conn:
         try:
-            return stables_service.create_pesebrera(conn, payload.nombre, payload.capacidad)
+            result = stables_service.create_pesebreras(
+                conn, payload.nombre, payload.capacidad, payload.cantidad
+            )
         except sqlite3.IntegrityError:
-            raise HTTPException(status_code=409, detail="Ya existe una pesebrera con ese nombre.")
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe una pesebrera con ese nombre (o con alguno de los nombres generados).",
+            )
+    if isinstance(result, list):
+        return {"creadas": result, "total": len(result)}
+    return result
+
+
+@router.delete("/{pesebrera_id}")
+def eliminar_pesebrera(pesebrera_id: int):
+    with db_session() as conn:
+        try:
+            return stables_service.delete_pesebrera(conn, pesebrera_id)
+        except ResourceNotFoundError:
+            raise HTTPException(status_code=404, detail="La pesebrera indicada no existe.")
 
 
 @router.put("/{pesebrera_id}")

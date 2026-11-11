@@ -31,6 +31,33 @@ def create_pesebrera(conn, nombre, capacidad):
     return dict(row)
 
 
+def create_pesebreras(conn, nombre, capacidad, cantidad=1):
+    if cantidad <= 1:
+        return create_pesebrera(conn, nombre, capacidad)
+    new_ids = []
+    for index in range(1, cantidad + 1):
+        cursor = conn.execute(
+            "INSERT INTO pesebreras (nombre, capacidad, estado) VALUES (?, ?, 'disponible')",
+            (f"{nombre} {index}", capacidad),
+        )
+        new_ids.append(cursor.lastrowid)
+    conn.commit()
+    return [get_pesebrera(conn, new_id) for new_id in new_ids]
+
+
+def delete_pesebrera(conn, pesebrera_id):
+    get_pesebrera(conn, pesebrera_id)
+    conn.execute(
+        "UPDATE animales SET pesebrera_id = NULL, "
+        "estado = CASE WHEN estado = 'asignado' THEN 'disponible' ELSE estado END, "
+        "updated_at = datetime('now') WHERE pesebrera_id = ?",
+        (pesebrera_id,),
+    )
+    conn.execute("DELETE FROM pesebreras WHERE id = ?", (pesebrera_id,))
+    conn.commit()
+    return {"status": "Eliminado"}
+
+
 def update_pesebrera(conn, pesebrera_id, nombre, capacidad):
     pesebrera = get_pesebrera(conn, pesebrera_id)
     conn.execute(

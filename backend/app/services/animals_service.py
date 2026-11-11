@@ -2,18 +2,24 @@
 from app.services import queries, riders_service, stables_service
 
 
+ANIMAL_SELECT = (
+    "SELECT a.id, a.tipo, a.nombre, a.raza, a.sexo, a.pesebrera_id, a.montador_id, "
+    "a.estado, a.created_at, a.updated_at, "
+    "p.nombre AS pesebrera_nombre, m.nombre AS montador_nombre, "
+    "m.disponible AS montador_disponible "
+    "FROM animales a "
+    "LEFT JOIN pesebreras p ON p.id = a.pesebrera_id "
+    "LEFT JOIN montadores m ON m.id = a.montador_id "
+)
+
+
 def list_animales(conn):
-    rows = conn.execute(
-        "SELECT id, tipo, nombre, raza, sexo, pesebrera_id, montador_id, estado, created_at, updated_at FROM animales ORDER BY id"
-    ).fetchall()
+    rows = conn.execute(ANIMAL_SELECT + "ORDER BY a.id").fetchall()
     return [dict(row) for row in rows]
 
 
 def get_animal(conn, animal_id):
-    row = conn.execute(
-        "SELECT id, tipo, nombre, raza, sexo, pesebrera_id, montador_id, estado, created_at, updated_at FROM animales WHERE id = ?",
-        (animal_id,),
-    ).fetchone()
+    row = conn.execute(ANIMAL_SELECT + "WHERE a.id = ?", (animal_id,)).fetchone()
     if row is None:
         raise ResourceNotFoundError("El animal indicado no existe.")
     return dict(row)
@@ -32,6 +38,10 @@ def create_animal(conn, payload):
             raise StallFullError("La pesebrera indicada se encuentra llena.")
     if montador_id is not None:
         riders_service.get_montador(conn, montador_id)
+        if payload.get("montador_disponible") is not None:
+            riders_service.set_disponibilidad(
+                conn, montador_id, bool(payload.get("montador_disponible"))
+            )
     estado = payload.get("estado") or ("asignado" if pesebrera_id is not None else "disponible")
     cursor = conn.execute(
         "INSERT INTO animales (tipo, nombre, raza, sexo, pesebrera_id, montador_id, estado) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -45,8 +55,12 @@ def create_animal(conn, payload):
 
 def update_animal(conn, animal_id, payload):
     animal = get_animal(conn, animal_id)
-    new_pesebrera_id = payload.get("pesebrera_id", animal["pesebrera_id"])
-    new_montador_id = payload.get("montador_id", animal["montador_id"])
+    new_pesebrera_id = payload.get("pesebrera_id")
+    if new_pesebrera_id is None:
+        new_pesebrera_id = animal["pesebrera_id"]
+    new_montador_id = payload.get("montador_id")
+    if new_montador_id is None:
+        new_montador_id = animal["montador_id"]
     if animal["pesebrera_id"] is not None and animal["estado"] == "asignado":
         stables_service.refresh_pesebrera_state(conn, animal["pesebrera_id"])
     if new_pesebrera_id is not None:
@@ -55,6 +69,10 @@ def update_animal(conn, animal_id, payload):
             raise StallFullError("La pesebrera indicada se encuentra llena.")
     if new_montador_id is not None:
         riders_service.get_montador(conn, new_montador_id)
+        if payload.get("montador_disponible") is not None:
+            riders_service.set_disponibilidad(
+                conn, new_montador_id, bool(payload.get("montador_disponible"))
+            )
     conn.execute(
         "UPDATE animales SET tipo = ?, nombre = ?, raza = ?, sexo = ?, pesebrera_id = ?, montador_id = ?, estado = ? WHERE id = ?",
         (
