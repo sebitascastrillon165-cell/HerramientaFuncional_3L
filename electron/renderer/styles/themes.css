@@ -235,3 +235,76 @@
   --danger: #2e6fd8;
   --border: #5a3a5a;
 }
+
+/* ------------------------------------------------------------------
+   Tokens derivados del rediseno "Establo Premium".
+   Se resuelven por modo para sombras, brillos y esquema nativo.
+   ------------------------------------------------------------------ */
+
+:root {
+  --shadow-tint: rgba(43, 36, 26, 0.16);
+  --glow-tint: rgba(139, 90, 43, 0.18);
+  --scheme: light;
+  --veil: 0.06;
+}
+
+[data-mode="dark"] {
+  --shadow-tint: rgba(0, 0, 0, 0.55);
+  --glow-tint: rgba(0, 0, 0, 0.45);
+  --scheme: dark;
+  --veil: 0.14;
+}
+
+[data-mode="contrast"] {
+  --shadow-tint: transparent;
+  --glow-tint: transparent;
+  --scheme: light;
+  --veil: 0;
+  --brand-gradient: linear-gradient(0deg, #000000, #000000);
+}
+
+[data-mode="contrast"] .stat-card,
+[data-mode="contrast"] .panel,
+[data-mode="contrast"] .table-card,
+[data-mode="contrast"] .control-chip,
+[data-mode="contrast"] .api-status,
+[data-mode="contrast"] .btn,
+[data-mode="contrast"] .sidebar-foot {
+  box-shadow: none;
+}
+
+[data-mode="contrast"] .stat-card,
+[data-mode="contrast"] .panel,
+[data-mode="contrast"] .table-card,
+[data-mode="contrast"] .control-chip,
+[data-mode="contrast"] .api-status,
+[data-mode="contrast"] .sidebar-foot {
+  border-width: 2px;
+}
+
+[data-mode="contrast"] .stat-icon {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+}
+
+[data-mode="contrast"] .nav-item.active {
+  border: 2px solid #000000;
+  box-shadow: none;
+}
+
+[data-mode="contrast"] .nav-item.active i,
+[data-mode="contrast"] .brand-mark,
+[data-mode="contrast"] .btn-primary {
+  color: #ffffff;
+}
+
+[data-mode="contrast"] .pill-badge {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+[data-mode="contrast"] .occ-bar > span {
+  background-image: linear-gradient(0deg, #000000, #000000);
+}

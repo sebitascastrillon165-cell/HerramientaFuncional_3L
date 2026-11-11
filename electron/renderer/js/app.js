@@ -8,7 +8,45 @@
     return document.getElementById(id);
   }
 
-  async function apiRequest(method, path, body) {
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function setApiStatus(state, text) {
+    const chip = $("apiStatus");
+    const label = $("apiStatusText");
+    if (chip) {
+      chip.dataset.state = state;
+    }
+    if (label) {
+      label.textContent = text;
+    }
+  }
+
+  function animateNumber(element, target) {
+    if (!element) {
+      return;
+    }
+    const to = Number(target) || 0;
+    const from = Number(element.textContent) || 0;
+    if (prefersReducedMotion || from === to) {
+      element.textContent = String(to);
+      return;
+    }
+    const duration = 600;
+    const start = performance.now();
+    function step(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      element.textContent = String(Math.round(from + (to - from) * eased));
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  async function rawApiRequest(method, path, body) {
     if (window.electronAPI && window.electronAPI.invokeApi) {
       return await window.electronAPI.invokeApi({ method, path, body });
     }
@@ -25,6 +63,20 @@
       return null;
     }
     return await response.json();
+  }
+
+  async function apiRequest(method, path, body) {
+    try {
+      const result = await rawApiRequest(method, path, body);
+      setApiStatus("ok", "API local activa · :" + apiPort);
+      return result;
+    } catch (error) {
+      const message = String(error && error.message ? error.message : error);
+      if (/fetch failed|failed to fetch|ECONNREFUSED|network|backend/i.test(message)) {
+        setApiStatus("off", "Sin conexion con la API local");
+      }
+      throw error;
+    }
   }
 
   function showError(error) {
@@ -61,7 +113,13 @@
       el.classList.toggle("active", el.id === "view-" + viewId);
     });
     document.querySelectorAll(".nav-item").forEach(function (el) {
-      el.classList.toggle("active", el.dataset.view === viewId);
+      const isActive = el.dataset.view === viewId;
+      el.classList.toggle("active", isActive);
+      if (isActive) {
+        el.setAttribute("aria-current", "page");
+      } else {
+        el.removeAttribute("aria-current");
+      }
     });
     if (viewId === "dashboard") {
       loadDashboard();
@@ -78,21 +136,50 @@
     }
   }
 
+  function buildOccupancyItem(item) {
+    const li = document.createElement("li");
+    const row = document.createElement("div");
+    row.className = "occ-row";
+    const name = document.createElement("span");
+    name.className = "occ-name";
+    name.textContent = item.nombre;
+    const meta = document.createElement("span");
+    meta.className = "occ-meta";
+    meta.textContent = item.animales + "/" + item.capacidad + " animales";
+    row.appendChild(name);
+    row.appendChild(meta);
+    const bar = document.createElement("div");
+    bar.className = "occ-bar";
+    const fill = document.createElement("span");
+    const ratio = item.capacidad > 0 ? Math.min(item.animales / item.capacidad, 1) : 0;
+    fill.style.width = Math.round(ratio * 100) + "%";
+    bar.appendChild(fill);
+    li.appendChild(row);
+    li.appendChild(bar);
+    return li;
+  }
+
   function loadDashboard() {
     return apiRequest("GET", "/api/v1/dashboard/")
       .then(function (data) {
-        $("statStallsTotal").textContent = data.total_pesebreras;
-        $("statStallsAvailable").textContent = data.disponibles_pesebreras;
-        $("statStallsFull").textContent = data.llenas_pesebreras;
-        $("statRidersActive").textContent = data.montadores_activos;
-        $("statRidersAvailable").textContent = data.montadores_disponibles;
-        $("statAnimalsTotal").textContent = data.total_animales;
+        animateNumber($("statStallsTotal"), data.total_pesebreras);
+        animateNumber($("statStallsAvailable"), data.disponibles_pesebreras);
+        animateNumber($("statStallsFull"), data.llenas_pesebreras);
+        animateNumber($("statRidersActive"), data.montadores_activos);
+        animateNumber($("statRidersAvailable"), data.montadores_disponibles);
+        animateNumber($("statAnimalsTotal"), data.total_animales);
         const list = $("animalsByStall");
         list.innerHTML = "";
-        (data.animales_por_pesebrera || []).forEach(function (item) {
-          const li = document.createElement("li");
-          li.textContent = item.nombre + " (" + item.animales + "/" + item.capacidad + " animales)";
-          list.appendChild(li);
+        const items = data.animales_por_pesebrera || [];
+        if (items.length === 0) {
+          const empty = document.createElement("li");
+          empty.className = "empty-note";
+          empty.textContent = "Aun no hay pesebreras registradas.";
+          list.appendChild(empty);
+          return;
+        }
+        items.forEach(function (item) {
+          list.appendChild(buildOccupancyItem(item));
         });
       })
       .catch(showError);
@@ -284,6 +371,10 @@
   function syncPortControls() {
     $("apiPort").value = String(apiPort);
     $("portStatus").textContent = "API local: http://127.0.0.1:" + apiPort;
+    const footerPort = $("footerPort");
+    if (footerPort) {
+      footerPort.textContent = "API 127.0.0.1:" + apiPort;
+    }
   }
 
   async function reloadCurrentView() {
@@ -297,7 +388,7 @@
       const applied = await window.electronAPI.setSettings({ port: port });
       apiPort = applied.port;
       syncPortControls();
-      showSuccess("Puerto actualizado a " + apiPort + ". El backend se reuso.");
+      showSuccess("Puerto actualizado a " + apiPort + ". El backend se reinicio.");
       await reloadCurrentView();
     } else {
       apiPort = port;
@@ -339,6 +430,7 @@
       } catch (error) {}
     }
     syncPortControls();
+    setApiStatus("pending", "Iniciando API local · :" + apiPort);
   }
 
   document.querySelectorAll(".nav-item").forEach(function (button) {
