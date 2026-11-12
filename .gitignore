@@ -12,3 +12,5 @@ data/
 __pycache__/
 *.pyc
 *.spec
+
+docs/qa/e2e-error.log
