@@ -183,7 +183,15 @@
             <label for="stallCapacity">Capacidad</label>
             <input id="stallCapacity" type="number" min="1" value="1" required>
           </div>
+          <div class="field">
+            <label for="stallQuantity">Cantidad</label>
+            <input id="stallQuantity" type="number" min="1" max="100" value="1" required>
+          </div>
         </div>
+        <p class="field-hint">
+          Para crear varias a la vez, indique la cantidad (1-100). Se nombran
+          "Nombre 1" ... "Nombre N" de forma automatica.
+        </p>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-plus" aria-hidden="true"></i>
@@ -200,6 +208,7 @@
               <th>Nombre</th>
               <th>Capacidad</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="stallsTbody"></tbody>
@@ -252,6 +261,13 @@
               <option value="">Sin montador</option>
             </select>
           </div>
+          <div class="field">
+            <label for="animalRiderDisponible">Disponibilidad del montador</label>
+            <select id="animalRiderDisponible" disabled>
+              <option value="1">Disponible para mas caballos</option>
+              <option value="0">No disponible para mas caballos</option>
+            </select>
+          </div>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">
@@ -272,6 +288,7 @@
               <th>Pesebrera</th>
               <th>Montador</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="animalsTbody"></tbody>
@@ -316,6 +333,7 @@
               <th>Telefono</th>
               <th>Carga (caballos/mulas)</th>
               <th>Disponible</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="ridersTbody"></tbody>

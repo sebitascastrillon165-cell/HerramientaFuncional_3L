@@ -59,12 +59,14 @@ test("todos los controles de formulario tienen etiqueta visible", () => {
   const controlIds = [
     "stallName",
     "stallCapacity",
+    "stallQuantity",
     "animalType",
     "animalName",
     "animalRaza",
     "animalSexo",
     "animalStall",
     "animalRider",
+    "animalRiderDisponible",
     "riderName",
     "riderPhone",
     "tariffName",
@@ -99,4 +101,30 @@ test("el layout activo expone el indicador de estado de la API", () => {
   assert.match(html, /id="apiStatusText"/);
   assert.match(baseCss, /api-status\[data-state="ok"\]/);
   assert.match(baseCss, /api-status\[data-state="off"\]/);
+});
+
+test("la vista de pesebreras permite altas por cantidad", () => {
+  assert.match(html, /id="stallQuantity"[^>]*min="1"[^>]*max="100"/);
+  assert.match(html, /field-hint/);
+});
+
+test("el formulario de animales expone la disponibilidad del montador", () => {
+  assert.match(html, /id="animalRiderDisponible"[^>]*disabled/);
+  assert.match(html, /Disponible para mas caballos/);
+  assert.match(html, /No disponible para mas caballos/);
+});
+
+test("las tablas incluyen acciones de eliminacion con confirmacion", () => {
+  const headers = html.match(/<th>Acciones<\/th>/g) || [];
+  assert.ok(headers.length >= 3, "Faltan columnas Acciones en las tablas");
+  assert.match(appJs, /data-action="delete-stall"/);
+  assert.match(appJs, /data-action="delete-animal"/);
+  assert.match(appJs, /data-action="delete-rider"/);
+  assert.match(appJs, /Swal\.fire/);
+  assert.match(appJs, /confirmDelete/);
+});
+
+test("la tabla de animales muestra nombres de pesebrera y montador", () => {
+  assert.match(appJs, /pesebrera_nombre/);
+  assert.match(appJs, /montador_nombre/);
 });
