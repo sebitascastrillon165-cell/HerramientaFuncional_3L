@@ -1,0 +1,4 @@
+AssertionError [ERR_ASSERTION]: El montador no quedo marcado como no disponible
+    at main (C:\Users\neisa\Desktop\HerramientaFuncional_3L\tests\e2e\ui-smoke.cjs:190:12)
+
+Consola:

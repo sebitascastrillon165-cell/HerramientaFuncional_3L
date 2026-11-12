@@ -36,6 +36,21 @@ async function submitForm(page, formSelector) {
   await waitForSwal(page, "success");
 }
 
+async function confirmDelete(page, selector) {
+  await page.click(selector);
+  await page.waitForSelector(".swal2-container", { state: "visible", timeout: 15000 });
+  await page.click(".swal2-confirm");
+  await page.waitForFunction(
+    () => {
+      const title = document.querySelector(".swal2-title");
+      return title && title.textContent === "Listo";
+    },
+    null,
+    { timeout: 30000 }
+  );
+  await page.waitForSelector(".swal2-container", { state: "hidden", timeout: 30000 });
+}
+
 async function main() {
   fs.mkdirSync(qaDir, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pesebrera3l-qa-"));
@@ -94,11 +109,22 @@ async function main() {
     await page.click('[data-view="stables"]');
     await page.fill("#stallName", stallName);
     await page.fill("#stallCapacity", "2");
+    await page.fill("#stallQuantity", "3");
     await submitForm(page, "#formStall");
     await page.waitForFunction(
-      (name) => document.getElementById("stallsTbody").textContent.includes(name),
+      (name) => {
+        const text = document.getElementById("stallsTbody").textContent;
+        return text.includes(name + " 1") && text.includes(name + " 3");
+      },
       stallName
     );
+    assert.equal(
+      await page.locator("#stallsTbody tr").count(),
+      3,
+      "El lote no creo exactamente 3 pesebreras"
+    );
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(qaDir, "04-altas-por-lote.png") });
 
     await page.click('[data-view="riders"]');
     await page.fill("#riderName", riderName);
@@ -134,10 +160,36 @@ async function main() {
       riderName
     );
     await page.selectOption("#animalRider", riderValue);
+    await page.waitForSelector("#animalRiderDisponible:not([disabled])", { timeout: 10000 });
+    await page.selectOption("#animalRiderDisponible", "0");
     await submitForm(page, "#formAnimal");
     await page.waitForFunction(
       (name) => document.getElementById("animalsTbody").textContent.includes(name),
       animalName
+    );
+    const animalRowText = await page
+      .locator("#animalsTbody tr")
+      .filter({ hasText: animalName })
+      .first()
+      .textContent();
+    assert.ok(
+      animalRowText.includes(stallName + " 1"),
+      "La tabla de animales no muestra el nombre de la pesebrera"
+    );
+    assert.ok(
+      animalRowText.includes(riderName),
+      "La tabla de animales no muestra el nombre del montador"
+    );
+
+    await page.click('[data-view="riders"]');
+    const riderRowText = await page
+      .locator("#ridersTbody tr")
+      .filter({ hasText: riderName })
+      .first()
+      .textContent();
+    assert.ok(
+      riderRowText.trim().endsWith("No"),
+      "El montador no quedo marcado como no disponible"
     );
 
     await page.click('[data-view="tariffs"]');
@@ -219,6 +271,48 @@ async function main() {
       () => document.getElementById("statStallsTotal").textContent !== "0",
       null,
       { timeout: 30000 }
+    );
+
+    await page.click('[data-view="stables"]');
+    await page.waitForFunction(
+      (name) => document.getElementById("stallsTbody").textContent.includes(name + " 3"),
+      stallName
+    );
+    await confirmDelete(
+      page,
+      '#stallsTbody tr:has-text("' + stallName + ' 3") button[data-action="delete-stall"]'
+    );
+    await page.waitForFunction(
+      (name) => !document.getElementById("stallsTbody").textContent.includes(name + " 3"),
+      stallName
+    );
+
+    await page.click('[data-view="animals"]');
+    await page.waitForFunction(
+      (name) => document.getElementById("animalsTbody").textContent.includes(name),
+      animalName
+    );
+    await confirmDelete(
+      page,
+      '#animalsTbody tr:has-text("' + animalName + '") button[data-action="delete-animal"]'
+    );
+    await page.waitForFunction(
+      (name) => !document.getElementById("animalsTbody").textContent.includes(name),
+      animalName
+    );
+
+    await page.click('[data-view="riders"]');
+    await page.waitForFunction(
+      (name) => document.getElementById("ridersTbody").textContent.includes(name),
+      riderName
+    );
+    await confirmDelete(
+      page,
+      '#ridersTbody tr:has-text("' + riderName + '") button[data-action="delete-rider"]'
+    );
+    await page.waitForFunction(
+      (name) => !document.getElementById("ridersTbody").textContent.includes(name),
+      riderName
     );
 
     await page.selectOption("#themeSelect", "pampa");
